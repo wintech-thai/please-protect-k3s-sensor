@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: bootstrap-control-plane-dev
+  namespace: argocd
+spec:
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          custom: "true"
+  template:
+    metadata:
+      name: 'bootstrap-control-plane-dev'
+    spec:
+      project: "default"
+      source:
+        repoURL: http://gitea-http.gitea.svc.cluster.local:3000/local/control-plane-dev.git
+        targetRevision: "development" #Based on environment
+        path: '.'
+        helm:
+          releaseName: pp-dev
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - values-files/values-development.yaml
+
+            # PP-Webs
+            - values-files/pp-web/pp-web-00-values.yaml
+            - values-files/pp-web/pp-web-01-development-values.yaml
+            - values-files/pp-web/pp-web-03-development-image-tag.yaml
+
+            # PP-Jobs
+            - values-files/pp-job/pp-job-00-values.yaml
+            - values-files/pp-job/pp-job-01-development-values.yaml
+            - values-files/pp-job/pp-job-03-development-image-tag.yaml
+
+            # pp-api
+            - values-files/pp-api/pp-api-00-values.yaml
+            - values-files/pp-api/pp-api-01-development-values.yaml
+            - values-files/pp-api/pp-api-03-development-image-tag.yaml
+
+      destination:
+        name: in-cluster
+        namespace: pp-development
+      syncPolicy:
+        automated:
+          selfHeal: true
+          prune: true
+        syncOptions:
+          - CreateNamespace=true

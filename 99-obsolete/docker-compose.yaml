@@ -1,0 +1,99 @@
+version: '3'
+volumes:
+  k3s-server: {}
+  k3s-agent: {}
+services:
+  server:
+    hostname: k3s-master-1
+    restart: always
+    image: "rancher/k3s:${K3S_VERSION}"
+    command:
+    - server
+    - --disable=traefik
+    tmpfs:
+    - /run
+    - /var/run
+    privileged: true
+    environment:
+    - K3S_TOKEN=secret
+    - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+    - K3S_KUBECONFIG_MODE=666
+    volumes:
+      - .:/output
+      - ./addons:/var/lib/rancher/k3s/server/manifests
+  
+      - k3s-server:/var/lib/rancher/k3s
+    ports:
+    - 127.0.0.1:6443:6443 # For kubectl
+    - 127.0.0.1:5044:30044 # File beat
+    - 443:32443
+    - 80:32080 # For Let's Encrypt 
+    logging:
+      driver: "json-file"
+      options: 
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  agent:
+    hostname: k3s-worker-1
+    restart: always
+    image: "rancher/k3s:${K3S_VERSION}"
+    command:
+    - agent
+    tmpfs:
+    - /run
+    - /var/run
+    privileged: true
+    volumes:
+      - k3s-agent:/etc/rancher/node
+      - ${STORAGE_DIR}:/var/lib/rancher/k3s/storage
+    environment:
+    - K3S_URL=https://server:6443
+    - K3S_TOKEN=secret
+    logging:
+      driver: "json-file"
+      options: 
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  zeek:
+    image: zeek/zeek:8.0.4
+    container_name: zeek
+    network_mode: "host"
+    privileged: true
+    # Update to your network interface in the zeek command below
+    command: >
+      zeek -i enp2s0 -C local /zeek-configs/zeek.cfg
+    volumes:
+      - /data/zeek:/zeek-logs/current
+      - ./10-configs-zeeks:/zeek-configs
+    #environment:
+    #  DUMMY: "001"
+    restart: always
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.2
+    container_name: filebeat
+    user: root
+    depends_on:
+      - zeek
+      - suricata
+    volumes:
+      - ./12-configs-filebeat/filebeat.yaml:/usr/share/filebeat/filebeat.yml:ro
+      - ./12-configs-filebeat/module.yaml:/filebeat-modules/module.yaml
+      - /data/zeek:/zeek-logs/current:ro
+      - /data/suricata/eve.json:/suricata-logs/eve.json:ro
+      - /data/suricata/suricata.fast.log:/suricata-logs/suricata.fast.log:ro
+    command: ["--strict.perms=false"]
+    restart: always
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: suricata
+    network_mode: "host"
+    privileged: true
+    entrypoint: ["/entrypoint.sh"]
+    volumes:
+      - ./11-configs-suricata/suricata.yaml:/etc/suricata/suricata.yaml
+      - ./11-configs-suricata/entrypoint.sh:/entrypoint.sh
+      - /data/suricata:/suricata-logs
+      - /data/suricata-rules:/var/lib/suricata/rules
+    restart: always
