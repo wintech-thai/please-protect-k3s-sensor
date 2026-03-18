@@ -18,7 +18,9 @@ spec:
           ROOT_URL: http://gitea-http.gitea.svc.cluster.local:3000
         service:
           DISABLE_REGISTRATION: true
-
+        user:
+          REQUIRE_PASSWORD_CHANGE: false
+  
     service:
       http:
         type: ClusterIP
