@@ -10,7 +10,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: git-sync
-          image: asia-southeast1-docker.pkg.dev/its-artifact-commons/utils/git-sync:develop-b82dd6c
+          image: asia-southeast1-docker.pkg.dev/its-artifact-commons/utils/git-sync:v0.0.1
           command:
             - /bin/sh
             - -c
@@ -41,7 +41,7 @@ spec:
                 exit 1
               fi
               
-              echo "Gitea is UP and READY! -> [$GIT_DEST_TOKEN]"
+              echo "Gitea is UP and READY!"
               echo "Gitea is ready. Running git-sync..."
 
               ruby git-sync.rb
