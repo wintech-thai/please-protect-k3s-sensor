@@ -5,15 +5,25 @@ MODE=${1:-prod}
 cd 01-bootstrap
 
 kubectl apply -f argocd-ing.yaml
-kubectl apply -f argocd-bootstrap-data-plane.yaml
 
 if [ "$MODE" = "dev" ]; then
+  # ให้ปรับ repoURL ให้ชี้ตรงไปที่ remote GIT ด้วย เพื่อให้ ArgoCD ไป sync มาจากตรงนั้นแทน
+  DATA_PLANE_REMOTE_REPO=https://github.com/wintech-thai/please-protect-data-plane.git
+  CTRL_PLANE_REMOTE_REPO=https://github.com/wintech-thai/please-protect-control-plane.git
+
+  sed -i "s|^\([[:space:]]*\)repoURL: .*|\1repoURL: ${DATA_PLANE_REMOTE_REPO}|g" argocd-bootstrap-data-plane.yaml
+  sed -i "s|^\([[:space:]]*\)repoURL: .*|\1repoURL: ${CTRL_PLANE_REMOTE_REPO}|g" argocd-bootstrap-control-plane-dev.yaml
+  sed -i "s|^\([[:space:]]*\)repoURL: .*|\1repoURL: ${CTRL_PLANE_REMOTE_REPO}|g" argocd-bootstrap-control-plane-prod.yaml
+
   echo "Deploying DEV control plane"
   kubectl apply -f argocd-bootstrap-control-plane-dev.yaml
 fi
 
 echo "Deploying PROD control plane"
 kubectl apply -f argocd-bootstrap-control-plane-prod.yaml
+
+echo "Deploying data plane"
+kubectl apply -f argocd-bootstrap-data-plane.yaml
 
 kubectl apply -f argocd-cluster-secret.yaml
 
