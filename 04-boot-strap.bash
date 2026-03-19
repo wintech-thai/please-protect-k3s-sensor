@@ -36,7 +36,7 @@ sed -i "s|<<GITEA_USERNAME>>|${GIT_USER}|g" ${YAML_FILE}.tmp
 sed -i "s|<<GITEA_PASSWORD>>|${GIT_PASSWORD}|g" ${YAML_FILE}.tmp 
 kubectl apply -f ${YAML_FILE}.tmp
 
-cd ..
-
 # Sync code จาก remote มาที่ local
 kubectl apply -f git-sync-job.yaml
+
+cd ..
