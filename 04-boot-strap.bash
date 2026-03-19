@@ -37,6 +37,7 @@ sed -i "s|<<GITEA_PASSWORD>>|${GIT_PASSWORD}|g" ${YAML_FILE}.tmp
 kubectl apply -f ${YAML_FILE}.tmp
 
 # Sync code จาก remote มาที่ local
+# TODO : กำหนดเวอร์ชันของ data-plane, control-plane ที่จะ sync ได้
 kubectl apply -f git-sync-job.yaml
 
 cd ..
